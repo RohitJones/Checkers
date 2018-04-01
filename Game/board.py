@@ -18,9 +18,6 @@ class Board:
         # checker board, row col system, also used to render colors
         self.cboard = utils.generate_checker_board(size)
 
-        # hack to maintain a persistent value through multiple event loop
-        self.selected_piece = None
-
     def render(self, output, rect_pos, circle_pos):
         for row in range(self.size):
             for col in range(self.size):

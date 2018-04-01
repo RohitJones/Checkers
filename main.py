@@ -1,3 +1,5 @@
-import Game
+from Game import Checkers
 
-Game.start(6)
+game = Checkers(6, king_exists=False)
+game.init_game()
+game.start()

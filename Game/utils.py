@@ -1,7 +1,3 @@
-from . import color
-import pygame
-
-
 def generate_checker_board(size):
     return [
         [1 if x % 2 == 0 else 0 for x in range(size)]
@@ -22,10 +18,3 @@ def get_clicked_tile(search_x, search_y, rect_pos, size):
                 return row, col
 
     return -1, -1
-
-
-def display_refresh(current_board, output, rp, cp):
-    output.fill(color.BLACK)
-    current_board.render(output, rp, cp)
-    pygame.display.flip()
-    pygame.time.Clock().tick(60)
