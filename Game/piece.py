@@ -77,6 +77,9 @@ class Piece:
 
         return moves
 
+    def kill_moves(self, game_board):
+        return {move: kill for (move, kill) in self.possible_moves(game_board).items() if kill}
+
     def __str__(self):
         return "{}".format(self.id)
 
