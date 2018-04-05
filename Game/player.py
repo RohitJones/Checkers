@@ -1,10 +1,11 @@
 class Player:
-    def __init__(self, pid, pcolor, direction):
+    def __init__(self, pid, pcolor, direction, ai=False):
         self.id = pid
         self.direction = direction
         self.color = pcolor
         self.score = 0
         self.pieces = {}
+        self.ai = ai
 
     def get_legal_pieces_id(self, game_state):
         moveable_pieces = []

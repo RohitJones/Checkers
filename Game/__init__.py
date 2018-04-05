@@ -122,7 +122,16 @@ class Checkers:
         self.display_refresh()
 
         while not self.game_over_flag:
-            self.event_loop()
+            if not self.turn.ai:
+                self.event_loop()
+            else:
+                self.turn.iterative_deeping_alpha_beta_search(self)
+
+                if len(self.not_turn.get_legal_pieces_id(self.game_board)):
+                    self.turn, self.not_turn = self.not_turn, self.turn
+
+                self.game_over_flag = True if self.game_over_method() else False
+
             self.display_refresh()
 
         print('Winner: {}'.format(self.game_over_method()))

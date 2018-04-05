@@ -5,7 +5,7 @@ import time
 
 class AI(Player):
     def __init__(self, pid, color, direction, piece_count):
-        Player.__init__(self, pid, color, direction)
+        Player.__init__(self, pid, color, direction, ai=True)
         self.piece_count = piece_count
         self.best_move = None
 
@@ -29,6 +29,7 @@ class AI(Player):
             if self.best_move[0] < score:
                 self.best_move = (score, pid, endpt, killpt)
 
+        print(self.best_move)
         game.move(destination=self.best_move[2],
                   player_instance=game.turn,
                   piece_id=self.best_move[1],
@@ -39,63 +40,83 @@ class AI(Player):
 
         return score
 
-    def __max_value(self, game, alpha, beta, depth):
+    def __max_value(self, game, alpha, beta, depth, prev_pid=None, prev_endpt=None, prev_killpt=None):
 
         utility_value = self.__terminal_test(game)
         if utility_value is not None:
-            return utility_value
+            return utility_value, prev_pid, prev_endpt, prev_killpt
 
         if depth == 0:
-            return self.eval(game, 'max')
+            return self.eval(game, 'max'), prev_pid, prev_endpt, prev_killpt
 
+        best_max_piece_id = None
+        best_max_end_pt = None
+        best_max_kill_pt = None
         v = -99
 
         max_player = game.turn if game.turn.id == self.id else game.not_turn
 
         for each_piece_id in max_player.get_legal_pieces_id(game.game_board):
-            for each_end_pt, kill_pt in max_player.pieces[each_piece_id].possible_moves(game.game_board).items():
+            for each_end_pt, each_kill_pt in max_player.pieces[each_piece_id].possible_moves(game.game_board).items():
                 max_game_copy = deepcopy(game)
 
                 max_game_copy.move(destination=each_end_pt,
                                    player_instance=max_player,
                                    piece_id=each_piece_id,
-                                   kill_location=kill_pt)
+                                   kill_location=each_kill_pt)
 
-                v = max(v, self.__min_value(max_game_copy, alpha, beta, depth - 1))
+                current_move = [each_piece_id, each_end_pt, each_kill_pt]
+                current_move_score, _, _, _ = self.__min_value(max_game_copy, alpha, beta, depth - 1, each_piece_id, each_end_pt, each_kill_pt)
+                v = max(v, current_move_score)
+
+                if v == current_move_score:
+                    best_max_piece_id, best_max_end_pt, best_max_kill_pt = current_move
+
                 if v >= beta:
-                    return v
+                    return [v] + current_move
+
                 alpha = max(alpha, v)
 
-        return v
+        return v, best_max_piece_id, best_max_end_pt, best_max_kill_pt
 
-    def __min_value(self, game, alpha, beta, depth):
+    def __min_value(self, game, alpha, beta, depth, prev_pid=None, prev_endpt=None, prev_killpt=None):
 
         utility_value = self.__terminal_test(game)
         if utility_value is not None:
-            return utility_value
+            return utility_value, prev_pid, prev_endpt, prev_killpt
 
         if depth == 0:
-            return self.eval(game, 'min')
+            return self.eval(game, 'min'), prev_pid, prev_endpt, prev_killpt
 
+        best_min_piece_id = None
+        best_min_end_pt = None
+        best_min_kill_pt = None
         v = 99
 
         min_player = game.turn if game.turn.id != self.id else game.not_turn
 
         for each_piece_id in min_player.get_legal_pieces_id(game.game_board):
-            for each_end_pt, kill_pt in min_player.pieces[each_piece_id].possible_moves(game.game_board).items():
+            for each_end_pt, each_kill_pt in min_player.pieces[each_piece_id].possible_moves(game.game_board).items():
                 min_game_copy = deepcopy(game)
 
                 min_game_copy.move(destination=each_end_pt,
                                    player_instance=min_player,
                                    piece_id=each_piece_id,
-                                   kill_location=kill_pt)
+                                   kill_location=each_kill_pt)
 
-                v = min(v, self.__max_value(min_game_copy, alpha, beta, depth - 1))
+                current_move = [each_piece_id, each_end_pt, each_kill_pt]
+                current_move_score, _, _, _ = self.__max_value(min_game_copy, alpha, beta, depth - 1, each_piece_id, each_end_pt, each_kill_pt)
+                v = min(v, current_move_score)
+
+                if v == current_move_score:
+                    best_min_piece_id, best_min_end_pt, best_min_kill_pt = current_move
+
                 if v <= alpha:
-                    return v
+                    return [v] + current_move
+
                 beta = min(beta, v)
 
-        return v
+        return v, best_min_piece_id, best_min_end_pt, best_min_kill_pt
 
     def __terminal_test(self, game):
         game_over_status = game.game_over()

@@ -1,5 +1,8 @@
-from Game import Checkers
+from Game import Checkers, color
+from ai import AI
 
-game = Checkers(4)
+ai_player = AI(2, color.BLUE, 'down', 2)
+
+game = Checkers(4, player_2=ai_player)
 game.init_game()
 game.start()
