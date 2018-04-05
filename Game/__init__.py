@@ -127,6 +127,24 @@ class Checkers:
 
         print('Winner: {}'.format(self.game_over_method()))
 
+    def move(self, destination, player_instance=None, piece_id=None, kill_location=None, piece_instance=None):
+        selected_piece = player_instance.pieces[piece_id] if not piece_instance else piece_instance
+
+        current_row, current_col = selected_piece.position
+        destination_row, destination_col = destination
+
+        selected_piece.position = destination_row, destination_col
+
+        self.game_board.state[current_row][current_col] = None
+        self.game_board.state[destination_row][destination_col] = selected_piece
+
+        if kill_location:
+            kill_row, kill_col = kill_location
+            killed_piece = self.game_board.state[kill_row][kill_col]
+            killed_piece.position = None
+            self.game_board.state[kill_row][kill_col] = None
+            del self.not_turn.pieces[killed_piece.id]
+
     def event_loop(self):
         for event in pygame.event.get():
 
@@ -163,23 +181,13 @@ class Checkers:
                         (row, col) in self.turn.get_legal_end_points(self.game_board) and \
                         (row, col) in self.selected_piece.possible_moves(self.game_board):
 
-                    prev_row, prev_col = self.selected_piece.position
-                    self.game_board.state[prev_row][prev_col] = None
+                    capture_location = None
 
                     if self.selected_piece.kill_moves(self.game_board):
-                        capture_row, capture_col = self.selected_piece.kill_moves(self.game_board)[(row, col)]
-                        captured_piece = self.game_board.state[capture_row][capture_col]
-
-                        self.turn.score += 5 if captured_piece.king else 1
-
-                        del self.not_turn.pieces[captured_piece.id]
-                        self.game_board.state[capture_row][capture_col].position = None
-                        self.game_board.state[capture_row][capture_col] = None
-
+                        capture_location = self.selected_piece.kill_moves(self.game_board)[(row, col)]
                         capture = True
 
-                    self.selected_piece.position = (row, col)
-                    self.game_board.state[row][col] = self.selected_piece
+                    self.move((row, col), kill_location=capture_location, piece_instance=self.selected_piece)
 
                     # promotion to king
                     if \
@@ -210,7 +218,7 @@ class Checkers:
                     self.game_over_flag = True if self.game_over_method() else False
 
                 else:
-                    self.game_board.selected_piece = None
+                    self.selected_piece = None
                     self.game_board.cboard = utils.generate_checker_board(self.size)
 
             if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
