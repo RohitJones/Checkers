@@ -33,5 +33,13 @@ class Player:
 
         return [move[0] for move in possible_moves]
 
+    def killable_count(self, game_state):
+        possible_moves = []
+
+        for each_piece in self.pieces.values():
+            possible_moves += list(each_piece.possible_moves(game_state).items())
+
+        return len([each_move for each_move in possible_moves if each_move[1]])
+
     def __repr__(self):
         return "Player: ID:{} | {} ".format(self.id, self.direction)

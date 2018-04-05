@@ -10,7 +10,7 @@ import pygame
 
 
 class Checkers:
-    def __init__(self, size, king_exists=False, chaining=False, player_1=None, player_2=None):
+    def __init__(self, size, king_exists=False, chaining=False, player_1=None, player_2=None, modified_rules=True):
         self.size = size
         self.game_board = None
         self.player_1 = player.Player(1, color.RED, 'up') if not player_1 else player_1
@@ -21,13 +21,14 @@ class Checkers:
         self.game_over_flag = False
 
         # for ai course
-        self.modified_rules = True
+        self.modified_rules = modified_rules
         self.game_over_method = self.game_over if self.modified_rules else self.game_over_v2
 
         # Extra Stuff
         self.king_exists = king_exists
         self.chaining = chaining
         self.lock_piece = False
+        self.capture = False
 
         # gfx stuff
         self.screen = None
@@ -56,11 +57,11 @@ class Checkers:
 
         # Row Col system
 
-        ai_positions = [(0, 1), (0, 3)]
-        human_positions = [(3, 0), (3, 2)]
+        # ai_positions = [(0, 1), (0, 3)]
+        # human_positions = [(3, 0), (3, 2)]
 
-        # ai_positions = [(0, 1), (0, 3), (0, 5), (1, 0), (1, 2), (1, 4)]
-        # human_positions = [(4, 1), (4, 3), (4, 5), (5, 0), (5, 2), (5, 4)]
+        ai_positions = [(0, 1), (0, 3), (0, 5), (1, 0), (1, 2), (1, 4)]
+        human_positions = [(4, 1), (4, 3), (4, 5), (5, 0), (5, 2), (5, 4)]
 
         # ai_positions = [(5, 2), (5, 4), (1, 2)]
         # human_positions = [(2, 3), (1, 0), (2, 1), (3, 0), (3, 2)]
@@ -126,10 +127,6 @@ class Checkers:
                 self.event_loop()
             else:
                 self.turn.iterative_deeping_alpha_beta_search(self)
-
-                if len(self.not_turn.get_legal_pieces_id(self.game_board)):
-                    self.turn, self.not_turn = self.not_turn, self.turn
-
                 self.game_over_flag = True if self.game_over_method() else False
 
             self.display_refresh()
@@ -154,6 +151,31 @@ class Checkers:
             self.game_board.state[kill_row][kill_col] = None
             del self.not_turn.pieces[killed_piece.id]
 
+        # promotion to king
+        if \
+                self.king_exists and \
+                ((self.selected_piece.direction == 'up' and destination_row == 0) or
+                 (self.selected_piece.direction == 'down' and destination_row == self.size - 1)):
+
+            self.selected_piece.king = True
+            self.capture = False
+
+        if self.chaining and self.selected_piece.kill_moves(self.game_board) and self.capture:
+            self.game_board.cboard = utils.generate_checker_board(self.size)
+            self.lock_piece = True
+
+        else:
+            self.lock_piece = False
+            self.selected_piece = None
+            self.game_board.cboard = utils.generate_checker_board(self.size)
+
+            # -------------------------------REFACTOR----------------------------
+            if not self.modified_rules:
+                self.turn, self.not_turn = self.not_turn, self.turn
+            else:
+                if len(self.not_turn.get_legal_pieces_id(self.game_board)):
+                    self.turn, self.not_turn = self.not_turn, self.turn
+
     def event_loop(self):
         for event in pygame.event.get():
 
@@ -162,7 +184,7 @@ class Checkers:
                 x, y = pygame.mouse.get_pos()
                 row, col = utils.get_clicked_tile(x, y, self.rect_pos, self.size)
 
-                capture = False
+                self.capture = False
                 if row == col < 0:
                     continue
 
@@ -194,34 +216,9 @@ class Checkers:
 
                     if self.selected_piece.kill_moves(self.game_board):
                         capture_location = self.selected_piece.kill_moves(self.game_board)[(row, col)]
-                        capture = True
+                        self.capture = True
 
                     self.move((row, col), kill_location=capture_location, piece_instance=self.selected_piece)
-
-                    # promotion to king
-                    if \
-                            self.king_exists and \
-                            ((self.selected_piece.direction == 'up' and row == 0) or
-                            (self.selected_piece.direction == 'down' and row == self.size - 1)):
-
-                        self.selected_piece.king = True
-                        capture = False
-
-                    if self.chaining and self.selected_piece.kill_moves(self.game_board) and capture:
-                        self.game_board.cboard = utils.generate_checker_board(self.size)
-                        self.lock_piece = True
-
-                    else:
-                        self.lock_piece = False
-                        self.selected_piece = None
-                        self.game_board.cboard = utils.generate_checker_board(self.size)
-
-                        # -------------------------------REFACTOR----------------------------
-                        if not self.modified_rules:
-                            self.turn, self.not_turn = self.not_turn, self.turn
-                        else:
-                            if len(self.not_turn.get_legal_pieces_id(self.game_board)):
-                                self.turn, self.not_turn = self.not_turn, self.turn
 
                     # Check if this move caused a game over.
                     self.game_over_flag = True if self.game_over_method() else False
