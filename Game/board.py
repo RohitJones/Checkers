@@ -2,6 +2,7 @@ from . import utils
 from . import color
 from . import piece
 
+from copy import deepcopy
 import pygame
 
 
@@ -17,6 +18,12 @@ class Board:
 
         # checker board, row col system, also used to render colors
         self.cboard = utils.generate_checker_board(size)
+
+    def get_copy(self):
+        new_board = Board(size=self.size, color1=self.color1, color2=self.color2)
+        new_board.state = deepcopy(self.state)
+
+        return new_board
 
     def render(self, output, rect_pos, circle_pos):
         for row in range(self.size):

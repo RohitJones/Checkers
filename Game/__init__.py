@@ -5,6 +5,7 @@ from . import piece
 from . import player
 
 from sys import exit
+from copy import deepcopy
 
 import pygame
 
@@ -46,6 +47,21 @@ class Checkers:
                 circle_x_coordinate = (2 * (x_val + 1)) + (100 * x_val) + 100 // 2
                 self.circle_pos[(x_val, y_val)] = [circle_x_coordinate, circle_y_coordinate]
 
+    def get_copy(self):
+        new_game = Checkers(
+            size=self.size,
+            king_exists=self.king_exists,
+            chaining=self.chaining,
+            player_1=deepcopy(self.player_1),
+            player_2=deepcopy(self.player_2),
+            modified_rules=self.modified_rules
+        )
+        new_game.game_board = self.game_board.get_copy()
+        new_game.turn = new_game.player_1 if new_game.player_1.id == self.turn.id else new_game.player_2
+        new_game.not_turn = new_game.player_1 if new_game.player_1.id != self.turn.id else new_game.player_2
+
+        return new_game
+
     def init_game(self):
         pygame.init()
 
@@ -57,20 +73,11 @@ class Checkers:
 
         # Row Col system
 
-        # ai_positions = [(0, 1), (0, 3)]
-        # human_positions = [(3, 0), (3, 2)]
+        # ai_positions = [(0, 1), (0, 3), (0, 5), (1, 0), (1, 2), (1, 4)]
+        # human_positions = [(4, 1), (4, 3), (4, 5), (5, 0), (5, 2), (5, 4)]
 
-        ai_positions = [(0, 1), (0, 3), (0, 5), (1, 0), (1, 2), (1, 4)]
-        human_positions = [(4, 1), (4, 3), (4, 5), (5, 0), (5, 2), (5, 4)]
-
-        # ai_positions = [(5, 2), (5, 4), (1, 2)]
-        # human_positions = [(2, 3), (1, 0), (2, 1), (3, 0), (3, 2)]
-
-        # ai_positions = [(3, 2)]
-        # human_positions = [(4, 1), (4, 3), (2, 1), (2, 3), (5, 0), (5, 4), (3, 4)]
-
-        # ai_positions = [(0, 1), (0, 3), (0, 5), (0, 7), (1, 0), (1, 2), (1, 4), (1, 6), (2, 1), (2, 3), (2, 5), (2, 7)]
-        # human_positions = [(5, 0), (5, 2), (5, 4), (5, 6), (6, 1), (6, 3), (6, 5), (6, 7), (7, 0), (7, 2), (7, 4), (7, 6)]
+        ai_positions = [(0, 1), (0, 3)]
+        human_positions = [(3, 0), (3, 2)]
 
         for index, row_col in enumerate(ai_positions):
             row, col = row_col

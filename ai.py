@@ -1,5 +1,4 @@
 from Game.player import Player
-from copy import deepcopy
 import time
 
 
@@ -13,7 +12,19 @@ class AI(Player):
         turn_count = len(game.turn.pieces)
         not_turn_count = len(game.not_turn.pieces)
 
-        value = (turn_count * 10 + (self.piece_count - not_turn_count) * 7) + game.turn.killable_count(game.game_board)*100 - game.not_turn.killable_count(game.game_board)* 10
+        # f1 = turn_count * 100 + (self.piece_count - not_turn_count) * 70
+        # f2 = game.turn.killable_count(game.game_board)*50
+        # f3 = game.not_turn.killable_count(game.game_board) * -100
+
+        f1 = (turn_count * 10 + (self.piece_count - not_turn_count) * 7)
+        f2 = game.turn.killable_count(game.game_board)*100
+        f3 = game.not_turn.killable_count(game.game_board)* -10
+
+        # f1 = turn_count * 27 + (self.piece_count - not_turn_count) * 100
+        # f2 = game.turn.killable_count(game.game_board)*63
+        # f3 = game.not_turn.killable_count(game.game_board) * -10
+
+        value = f1 + f2 + f3
         if player == 'min':
             value = -value
 
@@ -26,7 +37,7 @@ class AI(Player):
         depth_level = 3
 
         while (time.time() - start_time) < 7 and depth_level < 40:
-            _game = deepcopy(game)
+            _game = game.get_copy()
             t = self.__alpha_beta_search(_game, depth_level)
             score, pid, endpt, killpt = t
             if self.best_move and self.best_move[0] < score:
@@ -65,7 +76,7 @@ class AI(Player):
         for each_piece_id in maxt1:
             maxt2 = max_player.pieces[each_piece_id].possible_moves(game.game_board).items()
             for each_end_pt, each_kill_pt in maxt2:
-                max_game_copy = deepcopy(game)
+                max_game_copy = game.get_copy()
 
                 max_game_copy.move(destination=each_end_pt,
                                    player_instance=max_game_copy.turn if max_game_copy.turn.id == self.id else max_game_copy.not_turn,
@@ -106,7 +117,7 @@ class AI(Player):
         for each_piece_id in mint1:
             mint2 = min_player.pieces[each_piece_id].possible_moves(game.game_board).items()
             for each_end_pt, each_kill_pt in mint2:
-                min_game_copy = deepcopy(game)
+                min_game_copy = game.get_copy()
 
                 min_game_copy.move(destination=each_end_pt,
                                    player_instance=min_game_copy.turn if min_game_copy.turn.id != self.id else min_game_copy.not_turn,
