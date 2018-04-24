@@ -5,13 +5,14 @@ from pygame import gfxdraw
 class Piece:
     def __init__(self, piece_id, position, piece_color, direction):
         # note: position is Row Col system
-        self.color = piece_color
-        self.direction = direction
-        self.id = piece_id
-        self.position = position
-        self.king = False
+        self.color = piece_color  # color of the piece
+        self.direction = direction  # direction of the piece. 'up' or 'down'
+        self.id = piece_id  # unique identifier of the piece
+        self.position = position  # row, col board position of the piece
+        self.king = False  # is piece a king
 
     def render_piece(self, output, circle_pos):
+        """Renders the piece on the board"""
         # note: rendering is XY system
         y, x = circle_pos[self.position]
 
@@ -25,7 +26,7 @@ class Piece:
 
     def possible_moves(self, game_board):
         # used to store possible moves. If a move is a kill move,
-        # the value of the move key is the location of the killed piece
+        # the 'value' of the move 'key' is the location of the killed piece
         normal_moves = {}
         kill_moves = {}
 
@@ -80,6 +81,7 @@ class Piece:
         return kill_moves if kill_moves else normal_moves
 
     def kill_moves(self, game_board):
+        """Returns only kill moves"""
         return {move: kill for (move, kill) in self.possible_moves(game_board).items() if kill}
 
     def __str__(self):
