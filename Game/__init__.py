@@ -75,6 +75,8 @@ class Checkers:
         self.game_board = board.Board(size=self.size, king=king)
 
         # Row Col system
+        # ai_positions = [(0, 1), (0, 5)]
+        # human_positions = [(1, 0), (2, 5), (4, 1)]
         ai_positions = [(0, 1), (0, 3), (0, 5), (1, 0), (1, 2), (1, 4)]
         human_positions = [(4, 1), (4, 3), (4, 5), (5, 0), (5, 2), (5, 4)]
 

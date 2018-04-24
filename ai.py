@@ -61,11 +61,13 @@ class AI(Player):
         # f3 = game.not_turn.killable_count(game.game_board) * -150
 
         # value = f1 + f2 + f3
+        max_player = game.turn if game.turn.id == self.id else game.not_turn
+        min_player = game.not_turn if game.not_turn.id != self.id else game.turn
 
-        value = len(game.turn.pieces) - len(game.not_turn.pieces)
+        value = len(max_player.pieces) - len(min_player.pieces)
 
-        if player == 'min':
-            value = -value
+        # if player == 'min':
+        #     value = -value
 
         return value
 
@@ -97,7 +99,7 @@ class AI(Player):
         t = threading.Thread(target=self.__idabs, args=(game, e, ))
         t.start()
         t.join(self.time_limit)
-        # e.set()
+        e.set()
         t.join()
 
         if self.best_move:
@@ -129,13 +131,13 @@ class AI(Player):
 
         return score, pid, endpt, killpt
 
-    def __quiescence_search(self, game, player, depth):
-        if game.turn.killable_count(game.game_board) > 0 and depth > 0:
+    def __quiescence_search(self, game, player):
+        if game.turn.killable_count(game.game_board) > 0:
             for each_pid in game.turn.get_legal_pieces_id(game.game_board):
                 for each_ept, each_kpt in game.turn.pieces[each_pid].possible_moves(game.game_board).items():
                     qscopy = game.get_copy()
                     qscopy.move(each_ept, qscopy.turn, each_pid, each_kpt)
-                    self.__quiescence_search(game, player, depth - 1)
+                    self.__quiescence_search(qscopy, player)
         else:
             self.temp_list.append(self.eval(game, player))
 
@@ -150,7 +152,7 @@ class AI(Player):
                 return self.eval(game, 'max'), prev_pid, prev_endpt, prev_killpt
             else:
                 self.temp_list = []
-                self.__quiescence_search(game, 'max', 5)
+                self.__quiescence_search(game, 'max')
                 return max(self.temp_list), prev_pid, prev_endpt, prev_killpt
                 # print('unsteady max')
                 # return self.__max_value(game, alpha, beta, 5, prev_pid, prev_endpt, prev_killpt, event)
@@ -203,7 +205,7 @@ class AI(Player):
                 return self.eval(game, 'min'), prev_pid, prev_endpt, prev_killpt
             else:
                 self.temp_list = []
-                self.__quiescence_search(game, 'min', 5)
+                self.__quiescence_search(game, 'min')
                 return min(self.temp_list), prev_pid, prev_endpt, prev_killpt
                 # print('unsteady min')
                 # return self.__min_value(game, alpha, beta, 3, prev_pid, prev_endpt, prev_killpt, event)
