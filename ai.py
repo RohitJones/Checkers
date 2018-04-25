@@ -120,15 +120,16 @@ class AI(Player):
     def __alpha_beta_search(self, game, depth=-1, event=None):
         return self.__max_value(game, -self.infinity, self.infinity, depth, event=event)
 
-    def __max_value(self, game, alpha, beta, depth, prev_pid=None, prev_endpt=None, prev_killpt=None, event=None):
+    def __max_value(self, game, alpha, beta, depth, kill=None, event=None):
 
         utility_value = self.__terminal_test(game)
         if utility_value is not None:
-            return utility_value, prev_pid, prev_endpt, prev_killpt
+            return utility_value, None, None, None
 
         if event.isSet() or depth == 0:
-            if not prev_killpt:
+            if not kill:
                 return self.eval(game), None, None, None
+
             else:
                 self.temp_list = []
                 self.__quiescence_search(game)
@@ -150,30 +151,35 @@ class AI(Player):
                                    piece_id=each_piece_id,
                                    kill_location=each_kill_pt)
 
-                current_move = [each_piece_id, each_end_pt, each_kill_pt]
-                current_move_score, _, _, _ = self.__min_value(max_game_copy, alpha, beta, depth - 1, each_piece_id, each_end_pt, each_kill_pt, event=event)
+                current_move_score, _, _, _ = self.__min_value(game=max_game_copy,
+                                                               alpha=alpha,
+                                                               beta=beta,
+                                                               depth=depth - 1,
+                                                               kill=each_kill_pt,
+                                                               event=event)
                 v = max(v, current_move_score)
 
                 if v == current_move_score and v >= alpha:
-                    best_max_piece_id, best_max_end_pt, best_max_kill_pt = current_move
+                    best_max_piece_id, best_max_end_pt, best_max_kill_pt = each_piece_id, each_end_pt, each_kill_pt
 
                 if v >= beta:
                     self.number_of_alpha_prunes += 1
-                    return [v] + current_move
+                    return v, best_max_piece_id, best_max_end_pt, best_max_kill_pt
 
                 alpha = max(alpha, v)
 
         return v, best_max_piece_id, best_max_end_pt, best_max_kill_pt
 
-    def __min_value(self, game, alpha, beta, depth, prev_pid=None, prev_endpt=None, prev_killpt=None, event=None):
+    def __min_value(self, game, alpha, beta, depth, kill=None, event=None):
 
         utility_value = self.__terminal_test(game)
         if utility_value is not None:
-            return utility_value, prev_pid, prev_endpt, prev_killpt
+            return utility_value, None, None, None
 
         if event.isSet() or depth == 0:
-            if not prev_killpt:
+            if not kill:
                 return self.eval(game), None, None, None
+
             else:
                 self.temp_list = []
                 self.__quiescence_search(game)
@@ -195,16 +201,20 @@ class AI(Player):
                                    piece_id=each_piece_id,
                                    kill_location=each_kill_pt)
 
-                current_move = [each_piece_id, each_end_pt, each_kill_pt]
-                current_move_score, _, _, _ = self.__max_value(min_game_copy, alpha, beta, depth - 1, each_piece_id, each_end_pt, each_kill_pt, event=event)
+                current_move_score, _, _, _ = self.__max_value(game=min_game_copy,
+                                                               alpha=alpha,
+                                                               beta=beta,
+                                                               depth=depth - 1,
+                                                               kill=each_kill_pt,
+                                                               event=event)
                 v = min(v, current_move_score)
 
                 if v == current_move_score and v <= beta:
-                    best_min_piece_id, best_min_end_pt, best_min_kill_pt = current_move
+                    best_min_piece_id, best_min_end_pt, best_min_kill_pt = each_piece_id, each_end_pt, each_kill_pt
 
                 if v <= alpha:
                     self.number_of_beta_prunes += 1
-                    return [v] + current_move
+                    return v, best_min_piece_id, best_min_end_pt, best_min_kill_pt
 
                 beta = min(beta, v)
 

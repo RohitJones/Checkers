@@ -152,7 +152,7 @@ class Checkers:
                 self.event_loop()
             else:
                 # if the player, whose turn it is an AI, alpha beta is called.
-                self.turn.iterative_deeping_alpha_beta_search(self)
+                self.turn.iterative_deepening_alpha_beta_search(self)
                 self.game_over_flag = True if self.game_over_method() else False
 
             self.display_refresh()
