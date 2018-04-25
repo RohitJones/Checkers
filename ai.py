@@ -5,21 +5,21 @@ import threading
 
 
 class AI(Player):
-    def __init__(self, pid, color, direction, piece_count, time_limit=15, starting_depth=4):
+    def __init__(self, pid, color, direction, piece_count, time_limit=15, starting_depth=5):
         Player.__init__(self, pid, color, direction, ai=True)
         self.piece_count = piece_count  # Number of pieces assigned initially
         self.best_move = None           # best move found in current iteration
         self.infinity = 99999           # infinity used in alpha-beta
         self.time_limit = time_limit
         self.starting_depth = starting_depth
-        self.depth_limit = 5
+        self.depth_limit = 6
         # storage location of statistics for each move
         self.number_of_nodes = 0
         self.number_of_alpha_prunes = 0
         self.number_of_beta_prunes = 0
         self.temp_list = []
 
-    def eval(self, game, player):
+    def eval(self, game):
         # """Evaluation method that returns an integer value. value returned is -ve if player is 'min'."""
 
         # distance_score = 0  # Heuristic that determines how far
@@ -75,32 +75,26 @@ class AI(Player):
         depth_level = self.starting_depth
 
         while not thread_event.isSet() and depth_level < self.depth_limit:
-            _game = game.get_copy()
+            best_move = self.__alpha_beta_search(game.get_copy(), depth_level, event=thread_event)
 
-            t = self.__alpha_beta_search(_game, depth_level, event=thread_event)
             if not thread_event.isSet():
-                self.best_move = t
-            # = score, pid, endpt, killpt
-            # if self.best_move and self.best_move[0] < score:
-            #     self.best_move = (score, pid, endpt, killpt)
-            # elif not self.best_move:
-            #     self.best_move = (score, pid, endpt, killpt)
-            depth_level += 1
+                self.best_move = best_move
+                depth_level += 1
 
         print(depth_level)
 
-    def iterative_deeping_alpha_beta_search(self, game):
+    def iterative_deepening_alpha_beta_search(self, game):
         self.best_move = None
         self.number_of_nodes = 0
         self.number_of_alpha_prunes = 0
         self.number_of_beta_prunes = 0
 
-        e = threading.Event()
-        t = threading.Thread(target=self.__idabs, args=(game, e, ))
-        t.start()
-        t.join(self.time_limit)
-        e.set()
-        t.join()
+        time_event = threading.Event()
+        ai_thread = threading.Thread(target=self.__idabs, args=(game, time_event, ))
+        ai_thread.start()
+        ai_thread.join(self.time_limit)
+        time_event.set()
+        ai_thread.join()
 
         if self.best_move:
             game.move(destination=self.best_move[2],
@@ -112,34 +106,19 @@ class AI(Player):
             pids = self.get_legal_pieces_id(game.game_board)
             if pids:
                 pid = choice(pids)
-                temp = self.pieces[pid].possible_moves(game.game_board)
-                temp2 = list(temp.items())
-                randmov = choice(temp2)
-                mov_pos, kill_pos = randmov
+                mov_pos, kill_pos = choice(list(self.pieces[pid].possible_moves(game.game_board).items()))
                 game.move(destination=mov_pos, player_instance=game.turn, piece_id=pid, kill_location=kill_pos)
             else:
                 game.turn, game.not_turn = game.not_turn, game.turn
 
-        print('number of nodes: {}\nnumber of alpha prunes: {}\nnumber of beta prunes:  {}'.format(self.number_of_nodes, self.number_of_alpha_prunes, self.number_of_beta_prunes))
-        # game.move(destination=self.best_move[2],
-        #           player_instance=game.turn,
-        #           piece_id=self.best_move[1],
-        #           kill_location=self.best_move[3])
+        print('number of nodes: {}\n'
+              'number of alpha prunes: {}\n'
+              'number of beta prunes:  {}'.format(self.number_of_nodes,
+                                                  self.number_of_alpha_prunes,
+                                                  self.number_of_beta_prunes))
 
     def __alpha_beta_search(self, game, depth=-1, event=None):
-        score, pid, endpt, killpt = self.__max_value(game, -self.infinity, self.infinity, depth, event=event)
-
-        return score, pid, endpt, killpt
-
-    def __quiescence_search(self, game, player):
-        if game.turn.killable_count(game.game_board) > 0:
-            for each_pid in game.turn.get_legal_pieces_id(game.game_board):
-                for each_ept, each_kpt in game.turn.pieces[each_pid].possible_moves(game.game_board).items():
-                    qscopy = game.get_copy()
-                    qscopy.move(each_ept, qscopy.turn, each_pid, each_kpt)
-                    self.__quiescence_search(qscopy, player)
-        else:
-            self.temp_list.append(self.eval(game, player))
+        return self.__max_value(game, -self.infinity, self.infinity, depth, event=event)
 
     def __max_value(self, game, alpha, beta, depth, prev_pid=None, prev_endpt=None, prev_killpt=None, event=None):
 
@@ -149,25 +128,17 @@ class AI(Player):
 
         if event.isSet() or depth == 0:
             if not prev_killpt:
-                return self.eval(game, 'max'), prev_pid, prev_endpt, prev_killpt
+                return self.eval(game), None, None, None
             else:
                 self.temp_list = []
-                self.__quiescence_search(game, 'max')
-                return max(self.temp_list), prev_pid, prev_endpt, prev_killpt
-                # print('unsteady max')
-                # return self.__max_value(game, alpha, beta, 5, prev_pid, prev_endpt, prev_killpt, event)
+                self.__quiescence_search(game)
+                return max(self.temp_list), None, None, None
 
-        best_max_piece_id = None
-        best_max_end_pt = None
-        best_max_kill_pt = None
+        best_max_piece_id = best_max_end_pt = best_max_kill_pt = None
         v = -self.infinity
 
-        max_player = game.turn if game.turn.id == self.id else game.not_turn
-        maxt1 = max_player.get_legal_pieces_id(game.game_board)
-        for each_piece_id in maxt1:
-            maxt2 = max_player.pieces[each_piece_id].possible_moves(game.game_board).items()
-            for each_end_pt, each_kill_pt in maxt2:
-
+        for each_piece_id in game.turn.get_legal_pieces_id(game.game_board):
+            for each_end_pt, each_kill_pt in game.turn.pieces[each_piece_id].possible_moves(game.game_board).items():
                 if event.isSet():
                     return v, best_max_piece_id, best_max_end_pt, best_max_kill_pt
 
@@ -175,7 +146,7 @@ class AI(Player):
                 self.number_of_nodes += 1
 
                 max_game_copy.move(destination=each_end_pt,
-                                   player_instance=max_game_copy.turn if max_game_copy.turn.id == self.id else max_game_copy.not_turn,
+                                   player_instance=max_game_copy.turn,
                                    piece_id=each_piece_id,
                                    kill_location=each_kill_pt)
 
@@ -202,26 +173,17 @@ class AI(Player):
 
         if event.isSet() or depth == 0:
             if not prev_killpt:
-                return self.eval(game, 'min'), prev_pid, prev_endpt, prev_killpt
+                return self.eval(game), None, None, None
             else:
                 self.temp_list = []
-                self.__quiescence_search(game, 'min')
-                return min(self.temp_list), prev_pid, prev_endpt, prev_killpt
-                # print('unsteady min')
-                # return self.__min_value(game, alpha, beta, 3, prev_pid, prev_endpt, prev_killpt, event)
+                self.__quiescence_search(game)
+                return min(self.temp_list), None, None, None
 
-        best_min_piece_id = None
-        best_min_end_pt = None
-        best_min_kill_pt = None
+        best_min_piece_id = best_min_end_pt = best_min_kill_pt = None
         v = self.infinity
 
-        min_player = game.turn if game.turn.id != self.id else game.not_turn
-
-        mint1 = min_player.get_legal_pieces_id(game.game_board)
-        for each_piece_id in mint1:
-            mint2 = min_player.pieces[each_piece_id].possible_moves(game.game_board).items()
-            for each_end_pt, each_kill_pt in mint2:
-
+        for each_piece_id in game.turn.get_legal_pieces_id(game.game_board):
+            for each_end_pt, each_kill_pt in game.turn.pieces[each_piece_id].possible_moves(game.game_board).items():
                 if event.isSet():
                     return v, best_min_piece_id, best_min_end_pt, best_min_kill_pt
 
@@ -229,7 +191,7 @@ class AI(Player):
                 self.number_of_nodes += 1
 
                 min_game_copy.move(destination=each_end_pt,
-                                   player_instance=min_game_copy.turn if min_game_copy.turn.id != self.id else min_game_copy.not_turn,
+                                   player_instance=min_game_copy.turn,
                                    piece_id=each_piece_id,
                                    kill_location=each_kill_pt)
 
@@ -247,6 +209,16 @@ class AI(Player):
                 beta = min(beta, v)
 
         return v, best_min_piece_id, best_min_end_pt, best_min_kill_pt
+
+    def __quiescence_search(self, game):
+        if game.turn.killable_count(game.game_board) > 0:
+            for each_pid in game.turn.get_legal_pieces_id(game.game_board):
+                for each_ept, each_kpt in game.turn.pieces[each_pid].possible_moves(game.game_board).items():
+                    qscopy = game.get_copy()
+                    qscopy.move(each_ept, qscopy.turn, each_pid, each_kpt)
+                    self.__quiescence_search(qscopy)
+        else:
+            self.temp_list.append(self.eval(game))
 
     def __terminal_test(self, game):
         """Returns -infinity if min player wins. +infinity if max player wins. 0 if draw"""
