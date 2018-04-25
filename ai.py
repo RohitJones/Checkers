@@ -5,14 +5,14 @@ import threading
 
 
 class AI(Player):
-    def __init__(self, pid, color, direction, piece_count, time_limit=15, starting_depth=5):
+    def __init__(self, pid, color, direction, piece_count, time_limit=15, starting_depth=10):
         Player.__init__(self, pid, color, direction, ai=True)
         self.piece_count = piece_count  # Number of pieces assigned initially
-        self.best_move = None           # best move found in current iteration
+        self.best_move = None           # best move found in current
         self.infinity = 99999           # infinity used in alpha-beta
         self.time_limit = time_limit
         self.starting_depth = starting_depth
-        self.depth_limit = 6
+        self.depth_limit = 11
         # storage location of statistics for each move
         self.number_of_nodes = 0
         self.number_of_alpha_prunes = 0
@@ -22,52 +22,25 @@ class AI(Player):
     def eval(self, game):
         # """Evaluation method that returns an integer value. value returned is -ve if player is 'min'."""
 
-        # distance_score = 0  # Heuristic that determines how far
-        #
-        # for each_piece_id in game.turn.pieces:
-        #     row, col = game.turn.pieces[each_piece_id].position
-        #     if game.turn.pieces[each_piece_id].direction == 'down':
-        #         if row == 5:
-        #             distance_score += 1200
-        #         else:
-        #             distance_score += row * 100
-        #     else:
-        #         if row == 0:
-        #             distance_score += 1200
-        #         else:
-        #             distance_score += (5-row) * 100
-
-        # turn_count = len(game.turn.pieces)
-        # not_turn_count = len(game.not_turn.pieces)
-
-        # f1 = (len(game.turn.pieces) - len(game.not_turn.pieces)) * 1000
-        # f2 = game.turn.killable_count(game.game_board) * 2000
-        # f3 = game.not_turn.killable_count(game.game_board) * 2000
-
-        # f1 = len(game.turn.pieces) - len(game.not_turn.pieces)# * 250
-        # # f2 = game.turn.killable_count(game.game_board)*200
-        # # f3 = game.not_turn.killable_count(game.game_board) * -800
-        #
-        # f1 = len(game.turn.pieces) * 115 - (len(game.not_turn.pieces) * 85)
-        # f2 = game.turn.killable_count(game.game_board)*50
-        # f3 = game.not_turn.killable_count(game.game_board) * -500
-        #
-        # f1 = (turn_count * 10 + (self.piece_count - not_turn_count) * 7)
-        # f2 = game.turn.killable_count(game.game_board)*100
-        # f3 = game.not_turn.killable_count(game.game_board)* -10
-        #
-        # f1 = turn_count * 27 + (self.piece_count - not_turn_count) * 100
-        # f2 = game.turn.killable_count(game.game_board)*50
-        # f3 = game.not_turn.killable_count(game.game_board) * -150
-
-        # value = f1 + f2 + f3
         max_player = game.turn if game.turn.id == self.id else game.not_turn
         min_player = game.not_turn if game.not_turn.id != self.id else game.turn
 
-        value = len(max_player.pieces) - len(min_player.pieces)
+        max_player_pieces = [piece for piece in max_player.pieces.values()]
+        min_player_pieces = [piece for piece in min_player.pieces.values()]
 
-        # if player == 'min':
-        #     value = -value
+        max_player_positions = [piece.position for piece in max_player_pieces]
+        min_player_positions = [piece.position for piece in min_player_pieces]
+
+        max_player_moveable_piece_count = sum([len(each_piece.possible_moves(game.game_board)) for each_piece in max_player_pieces if not each_piece.kill_moves(game.game_board)])
+        min_player_moveable_piece_count = sum([len(each_piece.possible_moves(game.game_board)) for each_piece in min_player_pieces if not each_piece.kill_moves(game.game_board)])
+
+        edge = game.size - 1
+        max_player_safe_pieces = len([1 for x, y in max_player_positions if x in [0, edge] or y in [0, edge]])
+        min_player_safe_pieces = len([1 for x, y in min_player_positions if x in [0, edge] or y in [0, edge]])
+
+        value = ((len(max_player.pieces) - len(min_player.pieces)) * 100 +
+                 (max_player_safe_pieces - min_player_safe_pieces) * 75 +
+                 (max_player_moveable_piece_count - min_player_moveable_piece_count) * 50)
 
         return value
 
@@ -93,7 +66,7 @@ class AI(Player):
         ai_thread = threading.Thread(target=self.__idabs, args=(game, time_event, ))
         ai_thread.start()
         ai_thread.join(self.time_limit)
-        time_event.set()
+        # time_event.set()
         ai_thread.join()
 
         if self.best_move:
