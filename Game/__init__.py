@@ -11,13 +11,13 @@ import pygame
 
 
 class Checkers:
-    def __init__(self, size, king_exists=False, chaining=False, player_1=None, player_2=None, modified_rules=True):
+    def __init__(self, size, king_exists=False, chaining=False, player_1=None, player_2=None, modified_rules=True, first_turn=True):
         self.size = size  # size of the game board
         self.game_board = None  # instance of a board
         self.player_1 = player.Player(1, color.RED, 'up') if not player_1 else player_1  # human player object
         self.player_2 = player.Player(2, color.BLUE, 'down') if not player_2 else player_2  # human player object
-        self.turn = self.player_1  # keeps track of which player's turn it is
-        self.not_turn = self.player_2  # keeps track of which player's turn it is not
+        self.turn = self.player_1 if first_turn else self.player_2  # keeps track of which player's turn it is
+        self.not_turn = self.player_2 if first_turn else self.player_1  # keeps track of which player's turn it is not
         self.selected_piece = None  # keeps track of which piece was clicked on
         self.game_over_flag = False  # indicates that the game is over if set
 
@@ -157,7 +157,7 @@ class Checkers:
 
             self.display_refresh()
 
-        print('Winner: {}'.format(self.game_over_method()))
+        print('Player{} Wins !'.format(self.game_over_method()))
 
     def move(self, destination, player_instance=None, piece_id=None, kill_location=None, piece_instance=None):
         """Method to move a piece. The piece can be referenced by either an instance of the piece or
